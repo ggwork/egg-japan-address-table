@@ -1,0 +1,7 @@
+{
+  "extends": "eslint-config-egg",
+  "rules": {
+    "array-bracket-spacing":0,
+    "space-before-function-paren":0
+  }
+}
