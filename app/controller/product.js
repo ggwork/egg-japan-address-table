@@ -5,9 +5,10 @@ const { Controller } = require('egg');
 const validProRule = {
   date: { type: 'date', required: true },
   productName: { type: 'string', required: true },
+  address: { type: 'string', required: true },
+  status: { type: 'number', required: true },
   num: { type: 'int', required: true },
   price: { type: 'number', required: true },
-  totalPrice: { type: 'number', required: true },
 };
 
 class ProductController extends Controller {
@@ -19,11 +20,17 @@ class ProductController extends Controller {
   async addProduct () {
     const { ctx } = this;
     try {
+
       ctx.validate(validProRule, ctx.request.body);
-      const { date, productName, num, price, totalPrice } = ctx.request.body;
-      const res = await ctx.model.Product.create({
+      let { date, productName, address, status, num, price, totalPrice } = ctx.request.body;
+      if (!totalPrice) {
+        totalPrice = num * price;
+      }
+      await ctx.model.Product.create({
         date,
         productName,
+        address,
+        status,
         num,
         price,
         totalPrice,
@@ -31,10 +38,10 @@ class ProductController extends Controller {
       ctx.body = {
         code: 0,
         msg: '新增成功',
-        data: res,
       };
 
     } catch (error) {
+      console.log('error:', error);
       ctx.body = {
         code: -1,
         msg: '参数不能为空',
@@ -103,7 +110,7 @@ class ProductController extends Controller {
         $regex: '.*' + productName + '.*',
       };
     }
-    const data = await ctx.model.Product.findOne(searchObj);
+    const data = await ctx.model.Product.find(searchObj);
     ctx.body = {
       code: 0,
       msg: '查询成功',

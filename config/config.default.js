@@ -44,8 +44,14 @@ module.exports = appInfo => {
       fileExtensions: ['.xls', '.xlsx'],
     },
     cors: {
+      origin: '*',
       credentials: true,
       allowMethods: 'GET,HEAD,PUT,POST,DELETE,PATCH,OPTIONS',
+    },
+    security: {
+      csrf: {
+        enable: false,
+      },
     },
   };
 
