@@ -4,11 +4,23 @@ const { Controller } = require('egg');
 
 const validProRule = {
   date: { type: 'date', required: true },
-  productName: { type: 'string', required: true },
+  productName: { type: 'string', required: true, min: 1, max: 100 },
   address: { type: 'string', required: true },
   status: { type: 'number', required: true },
   num: { type: 'int', required: true },
   price: { type: 'number', required: true },
+  totalPrice: { type: 'number', required: false },
+};
+
+const validProRuleNotRequired = {
+  _id: { type: 'string', required: true },
+  date: { type: 'date', required: false },
+  productName: { type: 'string', required: false, min: 1, max: 100 },
+  address: { type: 'string', required: false },
+  status: { type: 'number', required: false },
+  num: { type: 'int', required: false },
+  price: { type: 'number', required: false },
+  totalPrice: { type: 'number', required: false },
 };
 
 class ProductController extends Controller {
@@ -48,6 +60,34 @@ class ProductController extends Controller {
       };
     }
   }
+  // 更新
+  async updateProduct () {
+    const { ctx } = this;
+    try {
+      ctx.validate(validProRuleNotRequired, ctx.request.body);
+
+
+      await ctx.model.Product.findOneAndUpdate({
+        _id: ctx.request.body._id,
+      }, {
+        $set: {
+          ...ctx.request.body,
+        },
+      });
+      ctx.body = {
+        code: 0,
+        msg: '更新成功',
+      };
+    } catch (error) {
+      ctx.body = {
+        code: -1,
+        msg: '参数格式不对',
+        data: error,
+      };
+    }
+
+
+  }
 
   async batchAddProduct () {
     const { ctx } = this;
@@ -55,6 +95,7 @@ class ProductController extends Controller {
       ctx.validate({
         list: { type: 'array', itemType: 'object', required: true, rule: validProRule },
       }, ctx.request.body);
+
       const res = await ctx.model.Product.create(ctx.request.body.list);
       ctx.body = {
         code: 0,
@@ -65,56 +106,80 @@ class ProductController extends Controller {
       ctx.body = {
         code: -1,
         msg: '参数不能为空',
+        data: error,
       };
     }
   }
 
   async deleteProduct () {
     const { ctx } = this;
-    const id = ctx.request.body.id;
-    if (id !== null || id !== undefined) {
-      const res = await ctx.model.Product.deleteOne({ _id: id });
-      // console.log('control res:', res);
-      if (res.affectedRows === 1) {
-        return {
+    console.log('ctx.request.body:', ctx.request.body);
+    const { _id } = ctx.request.body;
+
+    if (_id !== null && _id !== undefined) {
+      const res = await ctx.model.Product.deleteOne({ _id });
+      console.log('control res:', res);
+      if (res.deletedCount === 1) {
+
+        ctx.body = {
           code: 0,
           msg: '删除成功',
         };
+      } else {
+        ctx.body = {
+          code: -1,
+          msg: '删除失败',
+        };
       }
-      return {
+    } else {
+      ctx.body = {
         code: -1,
+        msg: 'id不能为空',
       };
     }
 
-    ctx.body = {
-      code: -1,
-      msg: 'id不能为空',
-    };
   }
 
 
   // 获取
   async getProduct () {
     const { ctx } = this;
-    const { startDate, endDate, productName } = ctx.request.body;
+    let { startDate, endDate, address, cPage, pageSize = 20 } = ctx.query;
+    if (!/[1-9]+/.test(cPage) || !/[1-9]+/.test(pageSize)) {
+      ctx.body = {
+        code: -1,
+        data: [],
+        msg: '页码必须是大于0数字',
+      };
+      ctx.status = 400;
+      return;
+    }
+    cPage = Number(cPage);
+    pageSize = Number(pageSize);
+    const skipNum = (cPage - 1) * pageSize;
     const searchObj = {};
-
     if (startDate && endDate) {
       searchObj.date = {
         $gte: startDate,
         $lte: endDate,
       };
     }
-    if (productName) {
-      searchObj.productName = {
-        $regex: '.*' + productName + '.*',
-      };
+    if (address) {
+      // searchObj.address = {
+      //   $regex: '.*' + address + '.*',
+      // };
+      searchObj.address = address;
     }
-    const data = await ctx.model.Product.find(searchObj);
+    const originData = await ctx.model.Product.find(searchObj).sort({ date: -1, status: 1 });
+    const totalNum = originData.length;
+    const list = originData.slice(skipNum, skipNum + pageSize);
     ctx.body = {
       code: 0,
       msg: '查询成功',
-      data,
+      data: {
+        totalNum,
+        list,
+      },
     };
   }
 }

@@ -12,5 +12,6 @@ module.exports = app => {
   router.post('/addProduct', controller.product.addProduct);
   router.post('/batchAddProduct', controller.product.batchAddProduct);
   router.post('/deleteProduct', controller.product.deleteProduct);
+  router.post('/updateProduct', controller.product.updateProduct);
   router.get('/getProduct', controller.product.getProduct);
 };
