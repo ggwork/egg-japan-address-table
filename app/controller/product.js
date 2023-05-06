@@ -60,13 +60,57 @@ class ProductController extends Controller {
       };
     }
   }
+
+  async batchUpdateProductStatus () {
+    const { ctx } = this;
+    try {
+      const upStatusList = ctx.request.body.list;
+      console.log('upStatusList:', upStatusList);
+      if (!upStatusList || Array.isArray(upStatusList) === false || upStatusList.length === 0) {
+        ctx.body = {
+          code: -1,
+          msg: '参数不能数为空',
+        };
+        return;
+      }
+      const upStatusFn = upStatusList.map(async item => {
+        return await ctx.model.Product.findOneAndUpdate({
+          _id: item._id,
+        }, {
+          $set: {
+            status: item.status,
+          },
+        });
+      });
+      await Promise.all(upStatusFn).then(() => {
+        ctx.body = {
+          code: 0,
+          msg: '更新成功',
+        };
+
+      }).catch(err => {
+        ctx.body = {
+          code: 0,
+          msg: '更新失败',
+          data: err,
+        };
+      });
+
+
+    } catch (error) {
+      ctx.body = {
+        code: -1,
+        msg: '参数格式不对',
+        data: error,
+      };
+    }
+
+  }
   // 更新
   async updateProduct () {
     const { ctx } = this;
     try {
       ctx.validate(validProRuleNotRequired, ctx.request.body);
-
-
       await ctx.model.Product.findOneAndUpdate({
         _id: ctx.request.body._id,
       }, {
@@ -170,7 +214,7 @@ class ProductController extends Controller {
       // };
       searchObj.address = address;
     }
-    const originData = await ctx.model.Product.find(searchObj).sort({ date: -1, status: 1 });
+    const originData = await ctx.model.Product.find(searchObj).sort({ status: 1, date: -1 });
     const totalNum = originData.length;
     const list = originData.slice(skipNum, skipNum + pageSize);
     ctx.body = {
